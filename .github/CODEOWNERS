@@ -1,0 +1,12 @@
+# Security-sensitive repository surfaces.
+# Enable "Require review from Code Owners" once the repository has
+# at least two maintainers who can independently review changes.
+
+* @tomiya7688
+
+/.github/ @tomiya7688
+/SECURITY.md @tomiya7688
+/schemas/ @tomiya7688
+/docs/security-ci.md @tomiya7688
+/docs/input-output-security.md @tomiya7688
+/docs/common-protocol.md @tomiya7688
