@@ -140,10 +140,15 @@ Blockerは「危険な文字列を見つけたら削除する」方式ではな�
 
 この違いを文書上でもAPI上でも明示します。
 
+さらに、本ツール自身のstdin / IPC / HTTP / JSON / log / error出力も攻撃面として扱います。raw byte limitをparse前に適用し、strict UTF-8、duplicate-key rejection、strict schema、bounded framing、resource budget、structured/redacted loggingを共通security invariantとします。
+
 ## Documents
 
 - [Architecture](docs/architecture.md)
 - [Common Protocol](docs/common-protocol.md)
+- [Input / Output Security](docs/input-output-security.md)
+- [Security CI](docs/security-ci.md)
+- [Security Policy](SECURITY.md)
 - [Roadmap](docs/roadmap.md)
 - [Modern Threats and Late-Stage Guards](docs/modern-threats.md)
 - [SQL Blocker v0.1](docs/blockers/sql-v0.1.md)
