@@ -45,6 +45,8 @@ Prepared / Parameterized execution
 - 防御ロジックの重複実装を減らし、共通Coreへ集約する
 - デフォルトは fail closed とし、安全性を確認できない操作は拒否できるようにする
 - 「安全にできないものを安全と主張しない」ことを設計原則にする
+- 現代的な攻撃では、攻撃の完全検出より **最終的な副作用の封じ込め** を優先する
+- LLM / Agentの出力も trusted decision ではなく、実行前の untrusted proposal として扱う
 
 ## Non-goals
 
@@ -68,6 +70,13 @@ Prepared / Parameterized execution
 | File Blocker | 危険なupload/write | 保存先、名前、型、サイズ、権限の制約 |
 | Log Blocker | Log Injection / secret leakage | 構造化ログ、改行・機密値ポリシー |
 | Deserialize Blocker | Unsafe Deserialization | 許可型・形式の制約 |
+| Egress Blocker | Secret exfiltration / unsafe outbound data | 宛先・credential・data label policy |
+| Agent Action Blocker | Prompt Injection後の危険なtool execution | capability / tool / argument / approval policy |
+| Resource Budget Blocker | ReDoS / parser bomb / decompression bomb | time / memory / depth / expansion budget |
+| Archive Extraction Blocker | Zip Slip / archive bomb | root containment / link policy / expansion limits |
+| Template Blocker | SSTI / unsafe expression execution | trusted template + constrained render |
+| Object Update Blocker | Mass Assignment / prototype pollution | field allowlist / schema-constrained update |
+| Parser Sandbox Blocker | malicious document/media parser exploit | isolated worker / no-network / resource limits |
 
 ## Delivery model
 
@@ -136,6 +145,7 @@ Blockerは「危険な文字列を見つけたら削除する」方式ではな�
 - [Architecture](docs/architecture.md)
 - [Common Protocol](docs/common-protocol.md)
 - [Roadmap](docs/roadmap.md)
+- [Modern Threats and Late-Stage Guards](docs/modern-threats.md)
 - [SQL Blocker v0.1](docs/blockers/sql-v0.1.md)
 
 ## Status
