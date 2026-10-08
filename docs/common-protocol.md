@@ -8,6 +8,8 @@
 
 Blocker固有の入力は `input` と `policy` の内部で定義し、transportや共通error modelは共有します。
 
+入力・出力そのものがsecurity boundaryであるため、wire format・framing・parser制約は [Input / Output Security](input-output-security.md) のnormative requirementsに従います。
+
 ---
 
 ## 2. Request envelope
@@ -254,6 +256,8 @@ callerが自由に偽装できるcontextをsecurity authorizationに直接使っ
 
 ## 10. Transport
 
+すべてのtransportで、raw byte limitを**parse前**に適用し、strict UTF-8、duplicate JSON key rejection、schema validationを共通要件とします。
+
 ### 10.1 One-shot stdin/stdout
 
 1 request / 1 response。
@@ -262,13 +266,35 @@ callerが自由に偽装できるcontextをsecurity authorizationに直接使っ
 printf '%s\n' '{"protocol_version":"1", ...}' | security-blocker
 ```
 
-stdoutにはmachine-readable responseのみを出します。
+one-shot modeはJSON documentをちょうど1個だけ受理します。
 
-human-readable logsはstderrへ出します。
+- payload sizeを読む段階で制限
+- trailing whitespace以外の追加documentを拒否
+- stdoutはmachine-readable responseのみ
+- human-readable logsはstderrのみ
+- parser / internal errorでもstdoutへstack trace等を混入させない
 
-### 10.2 Persistent JSON Lines
+### 10.2 Persistent local IPC
 
-1 line = 1 JSON object。
+production向けpersistent transportの第一候補です。
+
+wire framing:
+
+```text
+4-byte unsigned big-endian length
++
+exactly N bytes of UTF-8 JSON
+```
+
+受信側はlengthを読んだ時点で上限を確認し、巨大な宣言長に基づいて無制限allocationしてはいけません。
+
+framing violation、途中EOF、oversized frameではconnectionを閉じます。破損したstreamから次frameの位置を推測してresynchronizeしません。
+
+UnixではUnix Domain Socket、Windowsではrestrictive ACLを持つnamed pipeを優先します。
+
+### 10.3 Persistent JSON Lines
+
+JSONLは開発・debug・interop用途として提供できますが、productionの第一選択にはしません。
 
 ```text
 request 1\n
@@ -276,11 +302,17 @@ request 2\n
 request 3\n
 ```
 
-responseもrequestごとに1 lineとします。
+要件:
 
-`request_id` で対応付け可能にします。
+- maximum line lengthを読む前から強制
+- 1 physical line = 1 request
+- JSON string内部の改行はescape必須
+- unbounded `read_line` を使わない
+- malformed JSONを次requestへ連結しない
 
-### 10.3 Local HTTP / IPC daemon
+### 10.4 Local HTTP daemon
+
+必要な環境向けのfallbackです。
 
 例:
 
@@ -290,15 +322,38 @@ POST /v1/sql/prepare
 POST /v1/path/resolve
 ```
 
-ただし、内部的には共通envelopeへ変換します。
+ただし内部では共通envelopeへ変換します。
 
-daemonはdefaultでexternal interfaceへbindせず、localhostまたはlocal IPCに限定する方針です。
+default:
+
+- loopback bindのみ
+- strict method / Content-Type
+- parse前body limit
+- header size/count limit
+- read/write/idle/total timeout
+- concurrency limit
+- debug/profiling endpointなし
+- `X-Forwarded-*` を信頼しない
+
+non-local bindは別security modelとして扱い、暗黙には有効化しません。
 
 ---
 
 ## 11. Serialization rules
 
 初期実装は UTF-8 JSON を基準とします。
+
+Protocol v1のJSON profileでは以下を必須とします。
+
+- valid UTF-8 only
+- duplicate object keys reject
+- unknown common-envelope fields reject
+- blocker schemaでもunknown security-sensitive fields reject
+- nesting / collection / string lengthに明示的上限
+- NaN / Infinityなど非標準JSON number拡張を受理しない
+- serializerでresponseを生成し、文字列連結でJSONを組み立てない
+
+global Unicode normalizationは行いません。canonicalizationが必要な値はBlocker固有仕様で定義し、validationとexecutionで同一規則を使用します。
 
 将来的な候補:
 
@@ -355,3 +410,5 @@ SDKは対応version範囲を明示します。
 > Blockerが理解できない入力を、推測で安全扱いしない。
 
 unknown / unsupported / ambiguousな状態では、原則として `block` または `error` を返します。
+
+加えて、parser differential、framing ambiguity、resource limit超過、timeout、cancellationもallowへfallbackしてはいけません。
