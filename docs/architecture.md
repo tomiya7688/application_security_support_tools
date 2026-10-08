@@ -73,6 +73,8 @@ Blocker Coreは「文字列が怪しいか」ではなく、入力を構造化�
 
 Coreは、可能な限り言語SDKから共有します。
 
+Coreのparser / framing / serializer / error pathはSecurity Blocker自身のTrusted Computing Baseに含まれます。詳細要件は [Input / Output Security](input-output-security.md) を参照してください。
+
 ### 3.2 Blocker modules
 
 各脆弱性・dangerous sinkに特化したモジュールです。
@@ -276,16 +278,19 @@ Blockerが制御できない領域は、制御できるように見せません�
 ## 6. Common processing pipeline
 
 ```text
-1. Decode request
-2. Validate protocol
-3. Validate blocker schema
-4. Normalize structural values
-5. Resolve policy
-6. Perform blocker-specific checks
-7. Build safe primitive / execution plan
-8. Execute or return plan
-9. Return structured result
-10. Emit audit metadata
+1. Enforce raw byte / frame / time limits
+2. Validate framing
+3. Strict UTF-8 decode
+4. Strict JSON parse (duplicate keys rejected)
+5. Validate common protocol schema
+6. Validate blocker-specific schema
+7. Normalize blocker-defined structural values only
+8. Resolve policy
+9. Perform blocker-specific checks
+10. Build safe primitive / execution plan
+11. Execute or return plan
+12. Serialize bounded structured result
+13. Emit redacted audit metadata
 ```
 
 Blockerごとに必要な処理を追加しますが、この流れを共通化します。
