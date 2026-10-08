@@ -165,18 +165,27 @@ SQL Blockerを最初に実装し、Core / protocol / SDK方針を固めます。
 
 順序は実装知見に応じて変更します。
 
+- Egress Blocker
+- Agent Action Blocker
+- Resource Budget Blocker
+- Archive Extraction Blocker
+- Object Update Blocker
+- Deserialize Blocker
+- Template Blocker
+- Parser Sandbox Blocker
+- Dynamic Load Blocker
+- Webhook / Replay Blocker
 - Redirect Blocker
 - Header Blocker
 - File Blocker
 - Log Blocker
-- Deserialize Blocker
-- Template Blocker
-- Archive Extraction Blocker
 - XML Blocker
-- Regex Blocker
-- Resource Consumption Blocker
 
 新しいBlockerを追加するときは「入力フィルタ」ではなく、**どのdangerous sinkを安全なprimitiveへ置き換えるのか**を最初に定義します。
+
+現代的な攻撃、特にAI/Agent・複雑なparser・resource exhaustionについても同じ原則を適用します。Prompt Injectionのように完全検出が困難な攻撃では、検出器をsecurity boundaryにせず、最終的なtool execution、outbound network、filesystem、process、resource consumptionをBlockerで制約します。
+
+詳細は [Modern Threats and Late-Stage Guards](modern-threats.md) を参照してください。
 
 ---
 
